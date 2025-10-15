@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Профиль</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center h-screen">
+
+  <div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md text-center">
+    <h1 class="text-2xl font-semibold text-gray-800 mb-4">Профиль пользователя</h1>
+
+    <div id="user-info" class="text-gray-700">
+      <p>Загрузка...</p>
+    </div>
+
+    <button id="logout" class="mt-6 w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition">
+      Выйти
+    </button>
+  </div>
+
+  <script>
+    async function loadProfile() {
+      const userInfoDiv = document.getElementById('user-info');
+      
+      try {
+        // 1. Запрос к защищенному API-маршруту для получения данных
+        const res = await fetch('/api/profile', { credentials: 'include' });
+
+        if (!res.ok) {
+          // 2. Если сервер вернул 401 (Unauthorized) или другой код ошибки
+          // Перенаправляем на страницу входа
+          console.error(`Ошибка авторизации: ${res.status}`);
+          userInfoDiv.innerHTML = '<p class="text-red-500">Доступ запрещен. Перенаправление...</p>';
+          
+          // Даем небольшую задержку для лучшего UX, затем редирект
+          setTimeout(() => {
+              window.location.href = '/login';
+          }, 500);
+          
+          return;
+        }
+
+        // 3. Успешно получаем JSON
+        const user = await res.json();
+        userInfoDiv.innerHTML = `
+          <p class="text-lg mb-2"><strong>Логин:</strong> ${user.username}</p>
+          <p><strong>Пароль:</strong> ${user.password || 'Нет данных'}</p>
+        `;
+      } catch (err) {
+        // 4. Ошибка сети/парсинга JSON
+        console.error('Ошибка при загрузке профиля:', err);
+        userInfoDiv.innerHTML = '<p class="text-red-500">Произошла ошибка сети.</p>';
+        
+        // В случае критической ошибки также перенаправляем
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1000);
+      }
+    }
+
+    document.getElementById('logout').addEventListener('click', () => {
+      // Удаляем JWT cookie, устанавливая Max-Age=0 (срок годности в прошлом)
+      // Важно, чтобы Path совпадал с тем, что был установлен при логине
+      document.cookie = "token=; Max-Age=0; path=/";
+      window.location.href = '/login';
+    });
+
+    // Вызываем при загрузке страницы
+    loadProfile();
+  </script>
+</body>
+</html>
